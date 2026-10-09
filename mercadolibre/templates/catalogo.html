@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% from "_macros.html" import foto %}
+{% block title %}Catálogo · ultra.snd{% endblock %}
+{% block content %}
+<section class="catalogo"><h2>Catálogo</h2>
+<div class="grilla">
+{% for p in productos %}
+  <a class="tarjeta" href="{{ url_for('producto', id=p.id) }}">
+    <div class="arte">{{ foto(p) }}</div>
+    <small>{{ p.categoria }}</small><h3>{{ p.nombre }}</h3>
+    {% if p.tagline %}<p class="sub">{{ p.tagline }}</p>{% endif %}
+    <p class="precio">{{ p.precio|money }}</p>
+    <span class="stock">{{ "Sin stock" if p.stock == 0 else p.stock ~ " disponibles" }}</span>
+  </a>
+{% else %}<p>Todavía no hay productos.</p>{% endfor %}
+</div></section>
+{% endblock %}

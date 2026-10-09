@@ -53,6 +53,14 @@ Abrir http://127.0.0.1:5000. La base SQLite y 4 productos de ejemplo se crean so
 - **Clientes:** en el login, «¿Olvidaste tu contraseña?». Se genera un enlace de un solo uso que vence en 30 min. Sin servidor de correo configurado, el enlace se **imprime en la consola** donde corre `python app.py`. Para enviarlo por email real, definir `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` y `BASE_URL`.
 - **Cualquier cuenta (incluida la de admin):** `python resetear_clave.py` desde la carpeta del proyecto.
 
+## Cómo se paga
+Después de elegir la entrega, el cliente elige **tarjeta** (simulador con 3D Secure) o **Mercado Pago** (Checkout Pro). El pago de Mercado Pago siempre se confirma consultando la API (retorno y webhook), nunca por lo que llega en la URL. Las credenciales van en `.env` (ver `.env.example`).
+
+## Tienda
+- **Portada**: explicación de cada auricular y acceso directo a su ficha. **Catálogo**: página aparte. **Ficha**: descripción, qué puede hacer, contenido de la caja y especificaciones (el admin las edita en Productos).
+- **Stock único**: el descuento al comprar es atómico y los pedidos sin pagar se cancelan a la hora y devuelven el stock (salvo los que tienen un pago de Mercado Pago en revisión).
+- **Email**: probar la configuración con `python probar_correo.py tu@correo.com`.
+
 ## Estructura
 `app.py` (rutas) · `pagos.py` (tarjetas, recargos, comisiones, facturas) · `models.py` · `forms.py` · `templates/` · `static/`
 

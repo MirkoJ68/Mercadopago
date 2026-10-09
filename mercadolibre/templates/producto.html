@@ -1,10 +1,11 @@
 {% extends "base.html" %}{% from "_macros.html" import foto, campo %}
+{% block title %}{{ p.nombre }} · ultra.snd{% endblock %}
 {% block content %}
 <section class="detalle">
   <div class="arte grande-arte">{{ foto(p, "hp grande") }}</div>
   <div>
     <small>{{ p.categoria }}</small><h1>{{ p.nombre }}</h1>
-    <p class="sub">{{ p.descripcion }}</p>
+    {% if p.tagline %}<p class="apple-tag">{{ p.tagline }}</p>{% endif %}
     <p class="precio xl">{{ p.precio|money }}</p>
     {% if p.stock > 0 %}
       <form method="post" class="form">{{ form.hidden_tag() }}{{ campo(form.cantidad) }}<button class="btn">COMPRAR AHORA ▷</button></form>
@@ -14,6 +15,15 @@
       <button type="button" class="btn chico" data-envio-btn>Calcular</button>
       <p id="envio-res" class="marca-det"></p>
       <p class="nota">Envíos desde nuestro almacén: {{ ALMACEN }}. Precio aproximado según la distancia.</p></div>
+  </div>
+</section>
+<section class="info">
+  <h2>Descripción</h2><p class="sub texto-largo">{{ p.descripcion }}</p>
+  {% if p.destacados_lista %}<h2>Qué puede hacer</h2>
+  <div class="grilla">{% for t, d in p.destacados_lista %}<div class="tarjeta"><h3>{{ t }}</h3><p class="sub">{{ d }}</p></div>{% endfor %}</div>{% endif %}
+  <div class="dos-col">
+    {% if p.caja_lista %}<div><h2>En la caja</h2><ul class="lista-caja">{% for i in p.caja_lista %}<li>{{ i }}</li>{% endfor %}</ul></div>{% endif %}
+    {% if p.specs_lista %}<div><h2>Especificaciones</h2><div class="tabla-wrap"><table>{% for k, v in p.specs_lista %}<tr><th>{{ k }}</th><td>{{ v }}</td></tr>{% endfor %}</table></div></div>{% endif %}
   </div>
 </section>
 {% endblock %}

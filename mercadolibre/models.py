@@ -28,6 +28,10 @@ class Usuario(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
 
+def _lineas(texto):
+    return [l.strip() for l in (texto or "").splitlines() if l.strip()]
+
+
 class Producto(db.Model):
     """Auricular a la venta."""
     id = db.Column(db.Integer, primary_key=True)
@@ -37,6 +41,22 @@ class Producto(db.Model):
     precio = db.Column(db.Float, nullable=False)
     stock = db.Column(db.Integer, default=0)
     imagen = db.Column(db.String(120))  # nombre del archivo en static/img/productos/
+    tagline = db.Column(db.String(160))  # frase corta de la portada
+    destacados = db.Column(db.Text)  # "Título|Texto", una por línea
+    caja = db.Column(db.Text)  # contenido de la caja, uno por línea
+    specs = db.Column(db.Text)  # "Nombre: valor", una por línea
+
+    @property
+    def destacados_lista(self):
+        return [tuple(x.strip() for x in (l.split("|", 1) + [""])[:2]) for l in _lineas(self.destacados)]
+
+    @property
+    def caja_lista(self):
+        return _lineas(self.caja)
+
+    @property
+    def specs_lista(self):
+        return [tuple(x.strip() for x in (l.split(":", 1) + [""])[:2]) for l in _lineas(self.specs)]
     pedidos = db.relationship("Pedido", backref="producto", lazy=True)
 
 
@@ -50,6 +70,7 @@ class Pedido(db.Model):
     estado = db.Column(db.String(20), default="pendiente")
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
     fecha_cobro = db.Column(db.DateTime)
+    numero = db.Column(db.String(16), unique=True)  # identificador público del pedido, ej: UL-7K3M-9QX2
     subtotal = db.Column(db.Float)  # productos, antes de descuento y envío
     descuento = db.Column(db.Float, default=0)
     envio = db.Column(db.Float, default=0)
@@ -65,6 +86,11 @@ class Pedido(db.Model):
     cupon_codigo = db.Column(db.String(20))
     pagos = db.relationship("Pago", backref="pedido", lazy=True, order_by="Pago.id")
     factura = db.relationship("Factura", backref="pedido", uselist=False)
+
+    @property
+    def codigo(self):
+        """Número de pedido que ve el cliente (si un pedido viejo no tiene número, muestra #id)."""
+        return self.numero or f"#{self.id}"
 
     @property
     def domicilio_texto(self):

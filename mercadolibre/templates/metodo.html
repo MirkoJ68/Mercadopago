@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% from "_macros.html" import csrf %}
+{% block content %}
+<section class="panel-form ancho"><h1>¿Cómo querés pagar?</h1>
+<p class="sub">Pedido {{ pedido.codigo }} · {{ pedido.cantidad }} × {{ pedido.producto.nombre }} · Total <b>{{ pedido.total|money2 }}</b></p>
+{% if en_revision %}<p class="aviso ok">Tenés un pago en revisión en Mercado Pago. Cuando se acredite, el pedido pasa a pagado.</p>{% endif %}
+<div class="metodos">
+<a class="metodo" href="{{ url_for('pagar', id=pedido.id) }}"><b>Tarjeta de crédito o débito</b>
+<span>Visa, Mastercard, American Express y más. Crédito en hasta 12 cuotas, con verificación 3D Secure.</span><span class="btn chico">Pagar con tarjeta ▷</span></a>
+<form method="post" action="{{ url_for('pagar_mp', id=pedido.id) }}">{{ csrf() }}
+<button class="metodo"><b>Mercado Pago</b><span>Te llevamos a Mercado Pago para pagar de forma segura y volvés acá cuando termines.</span><span class="btn chico">Pagar con Mercado Pago ▷</span></button></form>
+</div>
+<p class="nota"><a href="{{ url_for('entrega', id=pedido.id) }}">← Volver a la entrega y los cupones</a></p>
+</section>
+{% endblock %}

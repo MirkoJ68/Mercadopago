@@ -95,5 +95,14 @@
     if (inp.value) calcular();
   });
 
+  // --- Portada: las secciones de cada auricular aparecen al hacer scroll
+  var secciones = document.querySelectorAll(".apple");
+  if ("IntersectionObserver" in window && secciones.length) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("visible"); io.unobserve(e.target); } });
+    }, { threshold: 0.12 });
+    secciones.forEach(function (s) { s.classList.add("reveal"); io.observe(s); });
+  }
+
   document.querySelectorAll("[data-imprimir]").forEach(function (b) { b.addEventListener("click", function () { window.print(); }); });
 })();

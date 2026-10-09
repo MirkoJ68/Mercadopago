@@ -1,10 +1,8 @@
 {% extends "base.html" %}{% from "_macros.html" import campo, csrf %}
 {% block content %}
-<section class="panel-form"><h1>Pagar pedido #{{ pedido.id }}</h1>
+<section class="panel-form"><h1>Pagar con tarjeta · pedido {{ pedido.codigo }}</h1>
 <p class="sub">{{ pedido.cantidad }} × {{ pedido.producto.nombre }} · Total <b>{{ pedido.total|money2 }}</b> (productos{% if pedido.envio %} + envío{% endif %}{% if pedido.descuento %} − cupón{% endif %}, IVA incluido) · {{ pedido.domicilio_texto }}</p>
-<form method="post" action="{{ url_for('pagar_mp', id=pedido.id) }}">{{ csrf() }}
-<button class="btn">Pagar con Mercado Pago</button></form>
-<p class="sub">o probá el simulador de tarjeta:</p>
+<p class="nota"><a href="{{ url_for('metodo_pago', id=pedido.id) }}">← Elegir otro método de pago</a></p>
 <form method="post" class="form">{{ form.hidden_tag() }}
 <div class="fila">{{ campo(form.tipo) }}{{ campo(form.cuotas) }}</div>
 {{ campo(form.titular) }}{{ campo(form.numero) }}<p id="marca" class="marca-det">Marca no detectada</p>

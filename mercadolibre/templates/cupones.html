@@ -4,17 +4,17 @@
 {% if cupon_activo %}<p class="aviso ok">Cupón activo: <b>{{ cupon_activo }}</b>. Se aplica al elegir la entrega de tu pedido si cumple el monto mínimo.</p>{% endif %}
 <p class="sub">Elegí un cupón y usalo al comprar. El descuento se aplica al precio de los productos, no al envío.</p>
 <div class="grilla">
-{% for c in generales %}{{ cupon_card(c) }}{% else %}<p>No hay cupones disponibles por ahora.</p>{% endfor %}
+{% for c, est, nota in generales %}{{ cupon_card(c, est, nota) }}{% else %}<p>No hay cupones disponibles por ahora.</p>{% endfor %}
 <form method="post" action="{{ url_for('activar_cupon') }}" class="tarjeta form">{{ csrf() }}
 <label class="campo">¿Tenés un código?<input class="in" name="codigo" maxlength="20" autocomplete="off" placeholder="Ej: BIENVENIDA10"></label>
 <button class="btn chico">Activar cupón</button></form>
 </div>
 {% if current_user.is_authenticated %}
 <h2>Mis cupones de regalo</h2>
-<div class="grilla">{% for c in propios %}{{ cupon_card(c) }}{% else %}<p class="nota">Todavía no tenés cupones de regalo. Con compras desde {{ REGALO_DESDE|money }} te regalamos uno.</p>{% endfor %}</div>
+<div class="grilla">{% for c, est, nota in propios %}{{ cupon_card(c, est, nota) }}{% else %}<p class="nota">Todavía no tenés cupones de regalo. Con compras desde {{ REGALO_DESDE|money }} te regalamos uno.</p>{% endfor %}</div>
 <h2>Cupones canjeados</h2>
 <div class="tabla-wrap"><table><tr><th>Cupón</th><th>Pedido</th><th>Ahorraste</th><th>Fecha</th></tr>
-{% for p in canjeados %}<tr><td><b>{{ p.cupon_codigo }}</b></td><td><a href="{{ url_for('detalle_pedido', id=p.id) }}">#{{ p.id }}</a></td><td>{{ p.descuento|money2 }}</td><td>{{ p.fecha|fecha }}</td></tr>
+{% for p in canjeados %}<tr><td><b>{{ p.cupon_codigo }}</b></td><td><a href="{{ url_for('detalle_pedido', id=p.id) }}">{{ p.codigo }}</a></td><td>{{ p.descuento|money2 }}</td><td>{{ p.fecha|fecha }}</td></tr>
 {% else %}<tr><td colspan="4">Todavía no canjeaste cupones.</td></tr>{% endfor %}</table></div>
 {% else %}<p class="nota"><a href="{{ url_for('login') }}">Ingresá</a> para ver tus cupones de regalo y los que ya canjeaste.</p>{% endif %}
 </section>

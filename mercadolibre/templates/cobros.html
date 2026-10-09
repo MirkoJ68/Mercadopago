@@ -2,8 +2,8 @@
 {% block content %}
 <section class="catalogo"><h2>Cobros y liquidaciones</h2>
 <div class="tabla-wrap"><table>
-<tr><th>#</th><th>Cliente</th><th>Entrega</th><th>Tarjeta</th><th>Bruto</th><th>Comisión</th><th>IVA com.</th><th>Neto</th><th>Estado</th><th></th></tr>
-{% for p in pedidos %}{% set g = p.pago_aprobado %}{% set l = liq(g) %}<tr><td><a href="{{ url_for('detalle_pedido', id=p.id) }}">{{ p.id }}</a></td><td>{{ p.usuario.nombre }}</td><td>{{ ("Envío CP " ~ p.dom_cp) if p.metodo_entrega == "domicilio" else "Retiro" }}</td><td>{{ tarjeta(g) }}</td>
+<tr><th>N° de pedido</th><th>Cliente</th><th>Entrega</th><th>Tarjeta</th><th>Bruto</th><th>Comisión</th><th>IVA com.</th><th>Neto</th><th>Estado</th><th></th></tr>
+{% for p in pedidos %}{% set g = p.pago_aprobado %}{% set l = liq(g) %}<tr><td><a href="{{ url_for('detalle_pedido', id=p.id) }}">{{ p.codigo }}</a></td><td>{{ p.usuario.nombre }}</td><td>{{ ("Envío CP " ~ p.dom_cp) if p.metodo_entrega == "domicilio" else "Retiro" }}</td><td>{{ tarjeta(g) }}</td>
 <td>{{ l.bruto|money2 }}</td><td>{{ l.comision|money2 }}</td><td>{{ l.iva|money2 }}</td><td><b>{{ l.neto|money2 }}</b></td>
 <td><span class="estado {{ p.estado }}">{{ p.estado }}</span></td>
 <td>{% if p.estado == "pagado" %}<form method="post" action="{{ url_for('cobrar', id=p.id) }}">{{ csrf() }}<button class="btn chico">Registrar cobro</button></form>{% else %}{{ p.fecha_cobro|fecha }}{% endif %}</td></tr>

@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% from "_macros.html" import hp, foto, csrf %}
+{% extends "base.html" %}{% from "_macros.html" import hp, foto %}
 {% block content %}
 <section class="hero">
   <div class="bloque degradado"></div>
@@ -6,21 +6,19 @@
     <p class="estrellas">***</p>
     <h1>Sonido<br>Futurista</h1>
     <p class="sub">Auriculares premium de nueva generación</p>
-    <a class="btn" href="#catalogo">COMPRAR AHORA ▷</a>
+    <a class="btn" href="{{ url_for('catalogo') }}">COMPRAR AHORA ▷</a>
   </div>
   <div class="hero-arte"><div class="bloque violeta"></div>{% set dest = productos|selectattr("imagen")|first %}{% if dest %}{{ foto(dest, "hp grande") }}{% else %}{{ hp("Over-ear", "hp grande") }}{% endif %}</div>
 </section>
-<section id="catalogo" class="catalogo">
-  <h2>Catálogo</h2>
-  <div class="grilla">
-  {% for p in productos %}
-    <a class="tarjeta" href="{{ url_for('producto', id=p.id) }}">
-      <div class="arte">{{ foto(p) }}</div>
-      <small>{{ p.categoria }}</small><h3>{{ p.nombre }}</h3>
-      <p class="precio">{{ p.precio|money }}</p>
-      <span class="stock">{{ "Sin stock" if p.stock == 0 else p.stock ~ " disponibles" }}</span>
-    </a>
-  {% else %}<p>Todavía no hay productos.</p>{% endfor %}
-  </div>
-</section>
+<section class="intro-productos"><h2>Un auricular para cada forma de escuchar.</h2><p class="sub">Tocá cualquiera para conocerlo en detalle.</p></section>
+{% for p in productos %}
+<a class="apple{{ ' inv' if loop.index is even }}" href="{{ url_for('producto', id=p.id) }}" aria-label="Conocer {{ p.nombre }}">
+  <div class="apple-texto"><small>{{ p.categoria }}</small><h2>{{ p.nombre }}</h2>
+    {% if p.tagline %}<p class="apple-tag">{{ p.tagline }}</p>{% endif %}
+    <ul class="apple-lista">{% for t, d in p.destacados_lista %}<li><b>{{ t }}</b><span>{{ d }}</span></li>{% endfor %}</ul>
+    <span class="btn chico">Conocer más ›</span> <span class="desde">Desde {{ p.precio|money }}</span></div>
+  <div class="apple-arte">{{ foto(p, "hp grande") }}</div>
+</a>
+{% endfor %}
+<p class="centro"><a class="btn" href="{{ url_for('catalogo') }}">Ver todo el catálogo ▷</a></p>
 {% endblock %}

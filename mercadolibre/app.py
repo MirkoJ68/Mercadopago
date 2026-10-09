@@ -21,6 +21,7 @@ from flask_login import (LoginManager, current_user, login_required,
                          login_user, logout_user)
 from flask_wtf.csrf import CSRFProtect
 from itsdangerous import BadSignature, URLSafeTimedSerializer
+from sqlalchemy import update
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from forms import CambiarClaveForm, DatosForm, CompraForm, CuponForm, EntregaForm, LoginForm, OlvideForm, OtpForm, PagoForm, ProductoForm, RegistroForm, RestablecerForm
@@ -37,21 +38,48 @@ login_manager.login_view = "login"
 login_manager.login_message = "Iniciá sesión para continuar."
 
 SEED = [
-    ("punchipun", "Over-ear · ANC", "Cancelación activa de ruido y 60 h de batería.", 189999, 12),
-    ("snd.pro", "In-ear · TWS", "Auriculares inalámbricos con estuche de carga rápida.", 89999, 25),
-    ("aurricularr", "Gaming · 7.1", "Sonido envolvente 7.1 y micrófono desmontable.", 129999, 8),
-    ("ukulele", "Estudio · Cableado", "Respuesta plana para mezcla y masterización.", 159999, 5),
+    ("punchipun", "Over-ear · ANC", "Cancelación activa de ruido y 60 h de batería.", 30000, 12),
+    ("snd.pro", "In-ear · TWS", "Auriculares inalámbricos con estuche de carga rápida.", 8000, 25),
+    ("aurricularr", "Gaming · 7.1", "Sonido envolvente 7.1 y micrófono desmontable.", 15000, 8),
+    ("ukulele", "Estudio · Cableado", "Respuesta plana para mezcla y masterización.", 20000, 5),
 ]
 MIGRACIONES = {
-    "producto": [("imagen", "VARCHAR(120)")],
+    "producto": [("imagen", "VARCHAR(120)"), ("tagline", "VARCHAR(160)"), ("destacados", "TEXT"), ("caja", "TEXT"), ("specs", "TEXT")],
     "usuario": [("telefono", "VARCHAR(20)")],
     "cupon": [("usuario_id", "INTEGER"), ("origen", "VARCHAR(12)"), ("pedido_origen_id", "INTEGER")],
-    "pedido": [("subtotal", "FLOAT"), ("descuento", "FLOAT DEFAULT 0"), ("envio", "FLOAT DEFAULT 0"),
+    "pedido": [("numero", "VARCHAR(16)"), ("subtotal", "FLOAT"), ("descuento", "FLOAT DEFAULT 0"), ("envio", "FLOAT DEFAULT 0"),
                ("metodo_entrega", "VARCHAR(12)"), ("dom_calle", "VARCHAR(80)"), ("dom_numero", "VARCHAR(10)"),
                ("dom_piso", "VARCHAR(20)"), ("dom_ciudad", "VARCHAR(80)"), ("dom_provincia", "VARCHAR(40)"),
                ("dom_cp", "VARCHAR(10)"), ("telefono", "VARCHAR(20)"), ("cupon_id", "INTEGER"), ("cupon_codigo", "VARCHAR(20)")],
     "factura": [("descuento", "FLOAT DEFAULT 0"), ("envio", "FLOAT DEFAULT 0"), ("domicilio", "VARCHAR(250)"), ("cupon_codigo", "VARCHAR(20)")],
     "pago": [("proveedor", "VARCHAR(12)"), ("mp_payment_id", "VARCHAR(30)")],
+}
+_ultima_limpieza = 0.0
+EXTRA = {  # contenido de ejemplo de cada producto (el admin lo puede editar desde Productos)
+    "punchipun": {
+        "descripcion": "Los punchipun son auriculares over-ear pensados para desconectarte del mundo. Combinan cancelación activa de ruido, almohadillas de espuma viscoelástica y hasta 60 horas de batería para que los uses en el viaje, en la oficina o en casa sin pensar en cargarlos.",
+        "tagline": "Silencio que se escucha.",
+        "destacados": "Cancelación activa de ruido|Micrófonos que escuchan el entorno y lo anulan para que solo quedes con tu música.\n60 horas de batería|Una semana de uso diario con una carga; 10 minutos de carga rápida te dan 5 horas.\nModo ambiente|Con un toque oís lo que pasa a tu alrededor sin sacarte los auriculares.",
+        "caja": "Auriculares punchipun\nEstuche rígido de viaje\nCable USB-C de carga\nCable de audio de 3,5 mm\nGuía rápida y garantía",
+        "specs": "Tipo: Over-ear cerrado\nConectividad: Bluetooth 5.3 o cable\nBatería: hasta 60 h\nCarga: USB-C, 10 min = 5 h\nPeso: 260 g"},
+    "snd.pro": {
+        "descripcion": "Los snd.pro son auriculares inalámbricos livianos y discretos. Entran firmes en la oreja, suenan con graves profundos y vienen con un estuche que los carga varias veces durante la semana.",
+        "tagline": "Todo tu sonido, sin cables.",
+        "destacados": "Sonido sin cables|Conexión Bluetooth estable y baja latencia para videos, juegos y llamadas.\nEstuche de carga rápida|El estuche suma hasta 30 horas; 5 minutos de carga = 1 hora de música.\nControles táctiles|Pausá, cambiá de tema o contestá llamadas con un toque.",
+        "caja": "Auriculares snd.pro (izquierdo y derecho)\nEstuche de carga\nCable USB-C\nAlmohadillas de silicona S, M y L\nGuía rápida y garantía",
+        "specs": "Tipo: In-ear inalámbrico\nConectividad: Bluetooth 5.3\nBatería: 7 h + 23 h con el estuche\nResistencia: IPX4 (salpicaduras)\nPeso: 5 g cada uno"},
+    "aurricularr": {
+        "descripcion": "Los aurricularr están hechos para jugar horas sin cansarte. Ofrecen sonido envolvente 7.1, micrófono desmontable con cancelación de ruido y almohadillas acolchadas que no aprietan.",
+        "tagline": "Escuchá dónde está cada enemigo.",
+        "destacados": "Sonido envolvente 7.1|Ubicás pasos y disparos con precisión en cualquier juego.\nMicrófono desmontable|Voz clara en las partidas; lo sacás cuando no lo necesitás.\nLuces RGB|Iluminación personalizable que acompaña tu setup.",
+        "caja": "Auriculares aurricularr\nMicrófono desmontable\nCable USB de 2 m\nAdaptador de 3,5 mm\nGuía rápida y garantía",
+        "specs": "Tipo: Over-ear gamer\nSonido: 7.1 virtual\nConexión: USB o 3,5 mm\nMicrófono: cardioide, desmontable\nPeso: 320 g"},
+    "ukulele": {
+        "descripcion": "Los ukulele son auriculares de estudio de respuesta plana. Te muestran la mezcla tal como es, con cable desmontable y una construcción resistente para el uso diario en cabina o en casa.",
+        "tagline": "Lo que grabaste, tal como sonó.",
+        "destacados": "Respuesta plana|Sin realzar graves ni agudos: ideal para mezclar y masterizar.\nCable desmontable|Cambiás el cable en segundos y no te quedás sin auriculares.\nAlmohadillas de espuma|Cómodos en sesiones largas y aíslan del ruido del estudio.",
+        "caja": "Auriculares ukulele\nCable recto de 3 m\nCable espiralado de 1,5 m\nAdaptador de 6,3 mm\nBolsa de transporte\nGuía rápida y garantía",
+        "specs": "Tipo: Over-ear cerrado de estudio\nRespuesta: 10 Hz – 30 kHz\nImpedancia: 38 Ω\nConexión: cable 3,5 mm / 6,3 mm\nPeso: 285 g"},
 }
 _intentos = {}  # limitador de intentos en memoria (para producción: Redis / Flask-Limiter)
 _captchas = {}  # captchas vigentes (solo en el servidor): id -> (texto, vencimiento)
@@ -73,6 +101,15 @@ def url_segura(destino):
     return bool(destino) and destino.startswith("/") and not destino.startswith("//") and "\\" not in destino
 
 
+def nuevo_numero_pedido():
+    """Número de pedido único y no secuencial, ej: UL-7K3M-9QX2 (sin caracteres que se confundan)."""
+    alfabeto = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    while True:
+        n = "UL-" + "".join(secrets.choice(alfabeto) for _ in range(4)) + "-" + "".join(secrets.choice(alfabeto) for _ in range(4))
+        if not Pedido.query.filter_by(numero=n).first():
+            return n
+
+
 def cupones_del_usuario(u, excluir=None):
     """(disponibles, canjeados): cupones vigentes que el cliente aún no usó (generales y personales) y sus pedidos pagados con cupón."""
     usados = {p.cupon_id for p in Pedido.query.filter(Pedido.usuario_id == u.id, Pedido.cupon_id.isnot(None),
@@ -92,23 +129,33 @@ def reiniciar_sesion():
         session["cupon"] = cupon
 
 
+def enviar_correo(destino, asunto, texto):
+    """Envía un email por SMTP (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM). Lanza excepción si falla."""
+    puerto = int(os.environ.get("SMTP_PORT", "587"))
+    msg = EmailMessage()
+    msg["Subject"], msg["To"] = asunto, destino
+    msg["From"] = os.environ.get("SMTP_FROM") or os.environ.get("SMTP_USER") or "no-responder@ultra.snd"
+    msg.set_content(texto)
+    clase = smtplib.SMTP_SSL if puerto == 465 else smtplib.SMTP
+    with clase(os.environ["SMTP_HOST"], puerto, timeout=15) as s:
+        if puerto != 465:
+            s.starttls()
+        if os.environ.get("SMTP_USER"):
+            s.login(os.environ["SMTP_USER"], os.environ.get("SMTP_PASSWORD", ""))
+        s.send_message(msg)
+
+
 def enviar_enlace(destino, enlace):
-    """Envía el enlace por SMTP si hay SMTP_HOST configurado; si no, lo imprime en la consola del servidor."""
-    host = os.environ.get("SMTP_HOST")
-    if not host:
-        print(f"\n[ultra.snd] Enlace para restablecer la contraseña de {destino} (vence en 30 min, un solo uso):\n{enlace}\n", flush=True)
+    """Manda el enlace de recuperación; sin SMTP configurado lo imprime en la consola del servidor."""
+    texto = (f"Entrá a este enlace para elegir una contraseña nueva (vence en 30 minutos y sirve una sola vez):\n{enlace}\n\n"
+             "Si no lo pediste, ignorá este mensaje.")
+    if not os.environ.get("SMTP_HOST"):
+        print(f"\n[ultra.snd] SMTP sin configurar: el email NO se envió. Enlace para {destino}:\n{enlace}\n", flush=True)
         return
     try:
-        msg = EmailMessage()
-        msg["Subject"], msg["From"], msg["To"] = "ultra.snd: restablecer contraseña", os.environ.get("SMTP_FROM", "no-responder@ultra.snd"), destino
-        msg.set_content(f"Entrá a este enlace para elegir una contraseña nueva (vence en 30 minutos):\n{enlace}\n\nSi no lo pediste, ignorá este mensaje.")
-        with smtplib.SMTP(host, int(os.environ.get("SMTP_PORT", "587")), timeout=10) as s:
-            s.starttls()
-            if os.environ.get("SMTP_USER"):
-                s.login(os.environ["SMTP_USER"], os.environ.get("SMTP_PASSWORD", ""))
-            s.send_message(msg)
-    except Exception as e:  # no revelar fallos al visitante
-        print(f"[ultra.snd] No se pudo enviar el email: {e}", flush=True)
+        enviar_correo(destino, "ultra.snd: restablecer contraseña", texto)
+    except Exception as e:  # el visitante no ve el error; queda en la consola
+        print(f"[ultra.snd] No se pudo enviar el email a {destino}: {e}", flush=True)
 
 
 def nuevo_captcha():
@@ -176,13 +223,30 @@ def create_app():
         MAX_CONTENT_LENGTH=16 * 1024 * 1024)  # tope de subida: 16 MB
     db.init_app(app)
     login_manager.init_app(app)
-    CSRFProtect(app)
 
     @login_manager.user_loader
     def cargar_usuario(user_id):
         uid, _, sello = user_id.partition(":")
         u = db.session.get(Usuario, int(uid)) if uid.isdigit() else None
         return u if u and u.get_id() == user_id else None  # sesión inválida si cambió la contraseña
+
+    @app.before_request
+    def liberar_reservas():
+        """Los pedidos sin pagar se cancelan a la hora y devuelven su stock: el stock mostrado es siempre el realmente disponible."""
+        global _ultima_limpieza
+        if request.endpoint == "static" or time() - _ultima_limpieza < 60:
+            return
+        _ultima_limpieza = time()
+        limite = datetime.utcnow() - timedelta(minutes=60)
+        for p in Pedido.query.filter(Pedido.estado == "pendiente", Pedido.fecha < limite).all():
+            if any(pg.estado == "pendiente_mp" for pg in p.pagos):
+                continue  # pago en revisión en Mercado Pago: todavía no se libera el stock
+            p.estado = "cancelado"
+            p.producto.stock += p.cantidad
+            for pg in p.pagos:
+                if pg.estado == "pendiente_3ds":
+                    pg.estado, pg.codigo_respuesta, pg.mensaje, pg.otp_hash = "rechazado", "CA", "Pedido vencido", None
+        db.session.commit()
 
     @app.after_request
     def cabeceras_seguridad(r):
@@ -218,6 +282,10 @@ def create_app():
     def index():
         return render_template("index.html", productos=Producto.query.all())
 
+    @app.route("/catalogo")
+    def catalogo():
+        return render_template("catalogo.html", productos=Producto.query.all())
+
     @app.route("/producto/<int:id>", methods=["GET", "POST"])
     def producto(id):
         p = db.get_or_404(Producto, id)
@@ -225,11 +293,14 @@ def create_app():
         if form.validate_on_submit():
             if not current_user.is_authenticated:
                 return login_manager.unauthorized()
-            if form.cantidad.data > p.stock:
+            reservadas = db.session.execute(  # descuento atómico: dos clientes no pueden quedarse con la misma última unidad
+                update(Producto).where(Producto.id == p.id, Producto.stock >= form.cantidad.data)
+                .values(stock=Producto.stock - form.cantidad.data)).rowcount
+            if not reservadas:
+                db.session.refresh(p)
                 flash(f"Solo quedan {p.stock} unidades.", "error")
             else:
-                p.stock -= form.cantidad.data  # reserva de stock
-                pedido = Pedido(usuario_id=current_user.id, producto_id=p.id,
+                pedido = Pedido(numero=nuevo_numero_pedido(), usuario_id=current_user.id, producto_id=p.id,
                                 cantidad=form.cantidad.data, subtotal=p.precio * form.cantidad.data,
                                 descuento=0, envio=0, total=p.precio * form.cantidad.data)
                 db.session.add(pedido)
@@ -332,8 +403,11 @@ def create_app():
                 u = Usuario.query.filter_by(email=form.email.data.lower()).first()
                 if u and not u.es_admin:  # las cuentas de administración se recuperan por consola
                     token = firmador().dumps({"u": u.id, "s": u.password_hash[-16:]})  # el sello lo vuelve de un solo uso
-                    base = os.environ.get("BASE_URL") or request.url_root.rstrip("/")
-                    enviar_enlace(u.email, base + url_for("restablecer", token=token))
+                    ruta = url_for("restablecer", token=token)
+                    if os.environ.get("MODO_DEMO") == "1":  # solo para demos locales: salta el email
+                        flash("Modo demo: no se envió ningún email. Elegí tu nueva contraseña acá.", "ok")
+                        return redirect(ruta)
+                    enviar_enlace(u.email, (os.environ.get("BASE_URL") or request.url_root.rstrip("/")) + ruta)
                 flash("Si el email está registrado, te enviamos un enlace para restablecer la contraseña (vence en 30 minutos).", "ok")
                 return redirect(url_for("login"))
         return render_template("auth.html", form=form, titulo="Recuperar contraseña")
@@ -486,8 +560,18 @@ def create_app():
     @login_required
     def cancelar(id):
         pedido = pedido_de(id)
-        if pedido.estado == "pendiente" and not any(pg.estado == "pendiente_mp" for pg in pedido.pagos):
-             return redirect(url_for("pedidos"))
+        if any(pg.estado == "pendiente_mp" for pg in pedido.pagos):  # hay un pago en revisión en Mercado Pago
+            flash("Tenés un pago en revisión en Mercado Pago: no se puede cancelar hasta que se resuelva.", "error")
+            return redirect(url_for("detalle_pedido", id=id))
+        if pedido.estado == "pendiente":
+            pedido.estado = "cancelado"
+            pedido.producto.stock += pedido.cantidad  # devuelve el stock
+            for pg in pedido.pagos:
+                if pg.estado == "pendiente_3ds":
+                    pg.estado, pg.codigo_respuesta, pg.mensaje, pg.otp_hash = "rechazado", "CA", "Pedido cancelado", None
+            db.session.commit()
+            flash("Pedido cancelado.", "ok")
+        return redirect(url_for("pedidos"))
 
     @app.route("/factura/<int:id>")
     @login_required
@@ -496,6 +580,18 @@ def create_app():
         if f.pedido.usuario_id != current_user.id and not current_user.es_admin:
             abort(403)
         return render_template("factura.html", f=f, e=EMISOR)
+
+    @app.route("/pedido/<int:id>/metodo")
+    @login_required
+    def metodo_pago(id):
+        """Paso previo al pago: el cliente elige entre tarjeta (simulador con 3D Secure) y Mercado Pago."""
+        pedido = pedido_de(id)
+        if pedido.estado != "pendiente":
+            flash("Este pedido ya no admite pagos.", "error")
+            return redirect(url_for("detalle_pedido", id=id))
+        if pedido.metodo_entrega is None:
+            return redirect(url_for("entrega", id=id))
+        return render_template("metodo.html", pedido=pedido, en_revision=any(pg.estado == "pendiente_mp" for pg in pedido.pagos))
 
     @app.route("/pedido/<int:id>/pagar-mp", methods=["POST"])
     @login_required
@@ -520,7 +616,7 @@ def create_app():
         except Exception as e:
             print(f"[ultra.snd] Error con Mercado Pago: {e}", flush=True)
             flash("No pudimos conectar con Mercado Pago. Probá de nuevo.", "error")
-            return redirect(url_for("pagar", id=id))
+            return redirect(url_for("metodo_pago", id=id))
 
     @app.route("/pedido/<int:id>/mp-retorno")
     @login_required
@@ -539,7 +635,7 @@ def create_app():
             flash("Tu pago está en revisión. Cuando se acredite, el pedido pasa a pagado.", "ok")
         else:
             flash("El pago no se completó. Podés intentarlo de nuevo.", "error")
-            return redirect(url_for("pagar", id=id))
+            return redirect(url_for("metodo_pago", id=id))
         return redirect(url_for("detalle_pedido", id=id))
 
    
@@ -588,11 +684,22 @@ def create_app():
         codigo = request.form.get("codigo", "").strip().upper()[:20]
         if limitado(clave, 10, 300):
             flash("Demasiados intentos. Probá en unos minutos.", "error")
+            return redirect(url_for("cupones"))
+        registrar_intento(clave)
+        c = Cupon.query.filter_by(codigo=codigo).first()
+        if not c or not c.activo or (c.usuario_id and (not current_user.is_authenticated or current_user.id != c.usuario_id)):
+            flash("Ese cupón no existe.", "error")
+        elif c.vence and c.vence < date.today():
+            flash(f"El cupón {c.codigo} venció el {c.vence.strftime('%d/%m/%Y')}.", "error")
+        elif c.usos_max is not None and c.usos >= c.usos_max:
+            flash(f"El cupón {c.codigo} está agotado.", "error")
         else:
-            registrar_intento(clave)
-            c = Cupon.query.filter_by(codigo=codigo).first()
-            if not c or not c.vigente() or (c.usuario_id and (not current_user.is_authenticated or current_user.id != c.usuario_id)):
-                flash("Cupón inválido, vencido o agotado.", "error")
+            previo = None
+            if current_user.is_authenticated:
+                previo = Pedido.query.filter(Pedido.usuario_id == current_user.id, Pedido.cupon_id == c.id,
+                                             Pedido.estado.in_(["pagado", "cobrado"])).first()
+            if previo:
+                flash(f"Ya canjeaste el cupón {c.codigo} en el pedido {previo.codigo}. Cada cupón se usa una sola vez.", "error")
             else:
                 session["cupon"] = c.codigo
                 flash(f"Cupón {c.codigo} activado ({c.descripcion}). Se aplica al elegir la entrega de tu pedido.", "ok")
@@ -600,13 +707,29 @@ def create_app():
 
     @app.route("/cupones")
     def cupones():
+        """Cupones con su estado para el cliente: disponible, ya usado, vencido o agotado."""
+        yo = current_user.id if current_user.is_authenticated else 0
+        todos = Cupon.query.filter(Cupon.activo.is_(True), db.or_(db.and_(Cupon.publico.is_(True), Cupon.usuario_id.is_(None)),
+                                                                  Cupon.usuario_id == yo)).order_by(Cupon.id).all()
+        usados, canjeados = {}, []
         if current_user.is_authenticated:
-            disponibles, canjeados = cupones_del_usuario(current_user)
-        else:
-            disponibles = [c for c in Cupon.query.filter(Cupon.publico.is_(True), Cupon.usuario_id.is_(None)).all() if c.vigente()]
-            canjeados = []
-        return render_template("cupones.html", generales=[c for c in disponibles if c.usuario_id is None],
-                               propios=[c for c in disponibles if c.usuario_id is not None], canjeados=canjeados,
+            for p in Pedido.query.filter(Pedido.usuario_id == yo, Pedido.cupon_id.isnot(None), Pedido.estado != "cancelado").order_by(Pedido.id):
+                usados[p.cupon_id] = p
+            canjeados = cupones_del_usuario(current_user)[1]
+
+        def estado(c):
+            p = usados.get(c.id)
+            if p:
+                return "usado", f"Ya lo usaste en el pedido {p.codigo}" + ("" if p.estado in ("pagado", "cobrado") else " (pendiente de pago)")
+            if c.vence and c.vence < date.today():
+                return "vencido", "Vencido"
+            if c.usos_max is not None and c.usos >= c.usos_max:
+                return "agotado", "Agotado"
+            return "disponible", ""
+
+        tarjetas = [(c, *estado(c)) for c in todos]
+        return render_template("cupones.html", generales=[t for t in tarjetas if t[0].usuario_id is None],
+                               propios=[t for t in tarjetas if t[0].usuario_id is not None], canjeados=canjeados,
                                cupon_activo=session.get("cupon"))
 
     def cupon_valido(codigo, pedido):
@@ -658,7 +781,7 @@ def create_app():
                 db.session.commit()
                 if request.form.get("continuar"):
                     session.pop("cupon", None)
-                    return redirect(url_for("pagar", id=id))
+                    return redirect(url_for("metodo_pago", id=id))
                 flash("Totales actualizados.", "ok")
         disponibles, canjeados = cupones_del_usuario(current_user, excluir=pedido.id)
         return render_template("entrega.html", form=form, pedido=pedido, disponibles=disponibles, canjeados=canjeados)
@@ -708,6 +831,7 @@ def create_app():
             p = p or Producto()
             p.nombre, p.categoria, p.descripcion = form.nombre.data, form.categoria.data, form.descripcion.data
             p.precio, p.stock = form.precio.data, form.stock.data
+            p.tagline, p.destacados, p.caja, p.specs = form.tagline.data, form.destacados.data, form.caja.data, form.specs.data
             if nueva:
                 borrar_imagen(p.imagen)
                 p.imagen = nueva
@@ -798,7 +922,7 @@ def create_app():
         if pedido.estado == "pagado":
             pedido.estado, pedido.fecha_cobro = "cobrado", datetime.utcnow()
             db.session.commit()
-            flash(f"Liquidación del pedido #{id} registrada.", "ok")
+            flash(f"Liquidación del pedido {pedido.codigo} registrada.", "ok")
         return redirect(url_for("cobros"))
 
     with app.app_context():
@@ -809,11 +933,22 @@ def create_app():
                 if nombre not in existentes:
                     db.session.execute(db.text(f"ALTER TABLE {tabla} ADD COLUMN {nombre} {tipo}"))
         db.session.execute(db.text("UPDATE pedido SET subtotal = total WHERE subtotal IS NULL"))
+        for p in Pedido.query.filter(Pedido.numero.is_(None)).all():  # los pedidos anteriores reciben su número único
+            p.numero = nuevo_numero_pedido()
+            db.session.flush()
+        db.session.execute(db.text("CREATE UNIQUE INDEX IF NOT EXISTS ux_pedido_numero ON pedido(numero)"))
         db.session.commit()
         if Producto.query.count() == 0:
             for n, c, d, pr, s in SEED:
                 db.session.add(Producto(nombre=n, categoria=c, descripcion=d, precio=pr, stock=s))
             db.session.commit()
+        for p in Producto.query.all():  # completa la información de los productos que todavía no la tienen
+            ex = EXTRA.get(p.nombre)
+            if ex and not p.tagline:
+                p.tagline, p.destacados, p.caja, p.specs = ex["tagline"], ex["destacados"], ex["caja"], ex["specs"]
+                if len(p.descripcion or "") < 80:
+                    p.descripcion = ex["descripcion"]
+        db.session.commit()
         if Cupon.query.count() == 0:  # cupones de ejemplo (el admin puede editarlos o borrarlos)
             db.session.add(Cupon(codigo="BIENVENIDA10", tipo="porcentaje", valor=10, minimo=50000))
             db.session.add(Cupon(codigo="ULTRA20K", tipo="monto", valor=20000, minimo=150000))

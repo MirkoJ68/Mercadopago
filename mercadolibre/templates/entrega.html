@@ -1,7 +1,8 @@
 {% extends "base.html" %}{% from "_macros.html" import campo %}
 {% block content %}
-<section class="panel-form ancho"><h1>Entrega del pedido #{{ pedido.id }}</h1>
+<section class="panel-form ancho"><h1>Entrega del pedido {{ pedido.codigo }}</h1>
 <p class="sub">{{ pedido.cantidad }} × {{ pedido.producto.nombre }}</p>
+<p class="nota">Reservamos tu stock durante 1 hora. Si no pagás en ese tiempo, el pedido se cancela y las unidades vuelven a estar disponibles.</p>
 <form method="post" class="form">{{ form.hidden_tag() }}
 {{ campo(form.metodo_entrega) }}
 <p class="nota" id="aviso-retiro">Retiro sin costo en: {{ ALMACEN }}.</p>
@@ -19,7 +20,7 @@
 {% if disponibles %}<div class="mis-cupones"><small>Tus cupones disponibles (tocá uno para usarlo):</small>
 {% for c in disponibles %}<button type="button" class="chip-cupon" data-cupon="{{ c.codigo }}"{% if c.minimo > pedido.subtotal %} disabled{% endif %}><b>{{ c.codigo }}</b> · {{ c.descripcion }}{% if c.vence %} · vence {{ c.vence.strftime("%d/%m/%Y") }}{% endif %}{% if c.minimo > pedido.subtotal %} · no alcanza el mínimo{% endif %}</button>{% endfor %}</div>
 {% else %}<p class="nota">No tenés cupones disponibles por ahora.</p>{% endif %}
-{% if canjeados %}<details class="nota"><summary>Cupones que ya canjeaste ({{ canjeados|length }})</summary><ul>{% for p in canjeados %}<li>{{ p.cupon_codigo }} · pedido #{{ p.id }} · ahorraste {{ p.descuento|money2 }}</li>{% endfor %}</ul></details>{% endif %}
+{% if canjeados %}<details class="nota"><summary>Cupones que ya canjeaste ({{ canjeados|length }})</summary><ul>{% for p in canjeados %}<li>{{ p.cupon_codigo }} · pedido {{ p.codigo }} · ahorraste {{ p.descuento|money2 }}</li>{% endfor %}</ul></details>{% endif %}
 <table class="resumen">
 <tr><td>Productos</td><td>{{ pedido.subtotal|money2 }}</td></tr>
 {% if pedido.descuento %}<tr><td>Cupón {{ pedido.cupon_codigo }}</td><td>-{{ pedido.descuento|money2 }}</td></tr>{% endif %}

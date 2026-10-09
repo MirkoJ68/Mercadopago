@@ -17,7 +17,7 @@
   <a class="logo" href="{{ url_for('index') }}">ultra<i>.</i>snd</a>
   <nav>
     <a href="{{ url_for('index') }}">Inicio</a>
-    <a href="{{ url_for('index') }}#catalogo">Catálogo</a>
+    <a href="{{ url_for('catalogo') }}">Catálogo</a>
     <a href="{{ url_for('cupones') }}">Cupones</a>
     {% if current_user.is_authenticated %}
       <a href="{{ url_for('pedidos') }}">Mis pedidos</a>

@@ -28,10 +28,10 @@
 {% endif %}
 {% endmacro %}
 {% macro foto(p, cls="hp") %}{% if p.imagen %}<img class="foto" src="{{ url_for('static', filename='img/productos/' ~ p.imagen) }}" alt="{{ p.nombre }}" loading="lazy" decoding="async">{% else %}{{ hp(p.categoria, cls) }}{% endif %}{% endmacro %}
-{% macro cupon_card(c) %}<div class="tarjeta cupon"><p class="cupon-valor">{{ c.valor_texto }} <small>de descuento</small></p><h3>{{ c.codigo }}</h3>
+{% macro cupon_card(c, estado="disponible", nota="") %}<div class="tarjeta cupon{{ '' if estado == 'disponible' else ' cupon-off' }}"><p class="cupon-valor">{{ c.valor_texto }} <small>de descuento</small></p><h3>{{ c.codigo }}</h3>
 <p>{{ "Se usa en compras de productos desde " ~ (c.minimo|money) if c.minimo else "Sin compra mínima" }}</p>
 <p class="stock">{{ "Vence el " ~ c.vence.strftime("%d/%m/%Y") if c.vence else "Sin vencimiento" }}</p>
-<form method="post" action="{{ url_for('activar_cupon') }}">{{ csrf() }}<input type="hidden" name="codigo" value="{{ c.codigo }}"><button class="btn chico">Usar cupón</button></form></div>{% endmacro %}
+{% if estado == "disponible" %}<form method="post" action="{{ url_for('activar_cupon') }}">{{ csrf() }}<input type="hidden" name="codigo" value="{{ c.codigo }}"><button class="btn chico">Usar cupón</button></form>{% else %}<p class="estado-cupon {{ estado }}">{{ nota or estado|capitalize }}</p>{% endif %}</div>{% endmacro %}
 {% macro campo(f) %}<label class="campo">{{ f.label.text }}{{ f(class="in") }}{% for e in f.errors %}<small class="err">{{ e }}</small>{% endfor %}</label>{% endmacro %}
 {% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
-{% macro tarjeta(p) %}{% if p.marca %}<span class="chip">{{ p.marca }}</span> ···· {{ p.ultimos4 }} · {{ "Crédito" if p.tipo_tarjeta == "credito" else "Débito" }}{% else %}-{% endif %}{% endmacro %}
+{% macro tarjeta(p) %}{% if p.marca %}<span class="chip">{{ ("Mercado Pago · " ~ p.marca) if p.proveedor == "mercadopago" else p.marca }}</span>{% if p.ultimos4 %} ···· {{ p.ultimos4 }}{% endif %} · {{ "Crédito" if p.tipo_tarjeta == "credito" else "Débito" }}{% else %}-{% endif %}{% endmacro %}

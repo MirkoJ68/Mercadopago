@@ -3,7 +3,7 @@
 <p class="no-print acciones-fac"><button class="btn" data-imprimir>Imprimir / guardar PDF</button> <a class="btn" href="{{ url_for('detalle_pedido', id=f.pedido_id) }}">Volver al pedido</a></p>
 <article class="factura">
 <header><div><h2>{{ e.razon }}</h2><p>{{ e.domicilio }}<br>CUIT {{ e.cuit }} · {{ e.iva }}<br>Inicio de actividades: {{ e.inicio }}</p></div>
-<div class="letra">B</div><div><h2>FACTURA</h2><p>N° {{ f.numero }}<br>Fecha: {{ f.fecha|fecha }}</p></div></header>
+<div class="letra">B</div><div><h2>FACTURA</h2><p>N° {{ f.numero }}<br>Pedido: {{ f.pedido.codigo }}<br>Fecha: {{ f.fecha|fecha }}</p></div></header>
 <p><b>Cliente:</b> {{ f.cliente_nombre }} ({{ f.cliente_email }}) · Consumidor final</p>
 <p><b>Domicilio de facturación / entrega:</b> {{ f.domicilio or "Sin envío (retiro en almacén)" }}</p>
 <table><tr><th>Descripción</th><th>Importe</th></tr>
