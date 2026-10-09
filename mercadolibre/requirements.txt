@@ -4,3 +4,5 @@ Flask-Login>=0.6
 Flask-WTF>=1.2
 email-validator>=2.0
 requests>=2.31
+mercadopago>=2.2
+python-dotenv>=1.0

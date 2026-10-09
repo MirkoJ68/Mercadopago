@@ -26,7 +26,7 @@ def main():
         admin.set_password(clave)
         db.session.add(admin)
         db.session.commit()
-        print("Administrador creado. Ingresá desde http://127.0.0.1:5000/admin/login")
+        print("Administrador creado. Ingresá desde https://overstuff-veggie-empirical.ngrok-free.dev//admin/login")
 
 
 if __name__ == "__main__":

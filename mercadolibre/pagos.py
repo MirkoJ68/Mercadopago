@@ -84,3 +84,21 @@ def emitir_factura(pedido, pago):
         envio=pedido.envio or 0, domicilio=pedido.domicilio_texto, cupon_codigo=pedido.cupon_codigo,
         recargo=round(pago.monto - pedido.total, 2), neto=neto, iva=round(pago.monto - neto, 2), total=pago.monto,
         cae="".join(secrets.choice("0123456789") for _ in range(14)), cae_vto=(ahora + timedelta(days=10)).date())
+
+def aprobar_pedido(pedido, pago):
+    """Pedido pagado: consume el cupón, genera el cupón de regalo y emite la factura. No hace commit.
+    Devuelve True si se generó un cupón de regalo."""
+    from models import Cupon, db
+    from tienda import REGALO_DESDE, REGALO_DIAS, REGALO_MINIMO, REGALO_PORCENTAJE
+    pedido.estado = "pagado"
+    if pedido.cupon_id:
+        cupon = db.session.get(Cupon, pedido.cupon_id)
+        if cupon:
+            cupon.usos += 1
+    regalo = pedido.subtotal - (pedido.descuento or 0) >= REGALO_DESDE
+    if regalo:
+        db.session.add(Cupon(codigo="GRACIAS-" + secrets.token_hex(4).upper(), tipo="porcentaje", valor=REGALO_PORCENTAJE,
+                             minimo=REGALO_MINIMO, vence=date.today() + timedelta(days=REGALO_DIAS), usos_max=1,
+                             publico=False, activo=True, usuario_id=pedido.usuario_id, origen="regalo", pedido_origen_id=pedido.id))
+    db.session.add(emitir_factura(pedido, pago))
+    return regalo

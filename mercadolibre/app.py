@@ -1,11 +1,16 @@
 """ultra.snd - tienda de auriculares con pagos con tarjeta, 3D Secure, facturas y cobros simulados.
 
-Ejecutar:  python app.py   ->  http://127.0.0.1:5000
+Ejecutar:  python app.py   ->  https://overstuff-veggie-empirical.ngrok-free.dev/
 """
 import base64
 import os
 import secrets
 import smtplib
+from dotenv import load_dotenv
+
+from mp import crear_preferencia, firma_valida, sincronizar_pago
+
+
 from email.message import EmailMessage
 from datetime import date, datetime, timedelta
 from functools import wraps
@@ -20,12 +25,13 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from forms import CambiarClaveForm, DatosForm, CompraForm, CuponForm, EntregaForm, LoginForm, OlvideForm, OtpForm, PagoForm, ProductoForm, RegistroForm, RestablecerForm
 from models import Cupon, Factura, Pago, Pedido, Producto, Usuario, db
-from pagos import (EMISOR, RECHAZOS, detectar_marca, emitir_factura, liquidacion,
+from pagos import (EMISOR, RECHAZOS, aprobar_pedido, detectar_marca, emitir_factura, liquidacion,
                    monto_con_recargo, solo_digitos)
 from seguridad import generar_captcha, puntaje_clave
 from tienda import (ALMACEN, REGALO_DESDE, REGALO_DIAS, REGALO_MINIMO, REGALO_PORCENTAJE,
                     calcular_descuento, estimar_envio)
 
+load_dotenv()
 login_manager = LoginManager()
 login_manager.login_view = "login"
 login_manager.login_message = "Iniciá sesión para continuar."
@@ -45,6 +51,7 @@ MIGRACIONES = {
                ("dom_piso", "VARCHAR(20)"), ("dom_ciudad", "VARCHAR(80)"), ("dom_provincia", "VARCHAR(40)"),
                ("dom_cp", "VARCHAR(10)"), ("telefono", "VARCHAR(20)"), ("cupon_id", "INTEGER"), ("cupon_codigo", "VARCHAR(20)")],
     "factura": [("descuento", "FLOAT DEFAULT 0"), ("envio", "FLOAT DEFAULT 0"), ("domicilio", "VARCHAR(250)"), ("cupon_codigo", "VARCHAR(20)")],
+    "pago": [("proveedor", "VARCHAR(12)"), ("mp_payment_id", "VARCHAR(30)")],
 }
 _intentos = {}  # limitador de intentos en memoria (para producción: Redis / Flask-Limiter)
 _captchas = {}  # captchas vigentes (solo en el servidor): id -> (texto, vencimiento)
@@ -157,6 +164,7 @@ def pedido_de(id, permitir_admin=False):
 
 def create_app():
     app = Flask(__name__)
+    csrf = CSRFProtect(app)
     os.makedirs(app.instance_path, exist_ok=True)
     os.makedirs(os.path.join(app.static_folder, "img", "productos"), exist_ok=True)
     https = os.environ.get("HTTPS") == "1"
@@ -180,7 +188,7 @@ def create_app():
     def cabeceras_seguridad(r):
         r.headers["Content-Security-Policy"] = ("default-src 'self'; style-src 'self' https://fonts.googleapis.com; "
                                                 "font-src https://fonts.gstatic.com; img-src 'self' data:; "
-                                                "frame-ancestors 'none'; form-action 'self'; base-uri 'self'")
+                                                "frame-ancestors 'none'; form-action 'self' https://*.mercadopago.com https://*.mercadopago.com.ar; base-uri 'self'")
         r.headers["X-Content-Type-Options"] = "nosniff"
         r.headers["X-Frame-Options"] = "DENY"
         r.headers["Referrer-Policy"] = "same-origin"
@@ -461,17 +469,8 @@ def create_app():
             if check_password_hash(pago.otp_hash, form.codigo.data):
                 pago.estado, pago.codigo_respuesta, pago.mensaje = "aprobado", "00", "Aprobada"
                 pago.codigo_autorizacion, pago.otp_hash = secrets.token_hex(3).upper(), None
-                pedido.estado = "pagado"
-                if pedido.cupon_id:
-                    cupon = db.session.get(Cupon, pedido.cupon_id)
-                    if cupon:
-                        cupon.usos += 1  # el cupón se consume cuando el pago se aprueba
-                if pedido.subtotal - (pedido.descuento or 0) >= REGALO_DESDE:  # compra grande: cupón chico de regalo
-                    db.session.add(Cupon(codigo="GRACIAS-" + secrets.token_hex(4).upper(), tipo="porcentaje", valor=REGALO_PORCENTAJE,
-                                         minimo=REGALO_MINIMO, vence=date.today() + timedelta(days=REGALO_DIAS), usos_max=1,
-                                         publico=False, activo=True, usuario_id=pedido.usuario_id, origen="regalo", pedido_origen_id=pedido.id))
+                if aprobar_pedido(pedido, pago):
                     flash("Por tu compra grande te regalamos un cupón. Lo ves en «Mis cupones».", "ok")
-                db.session.add(emitir_factura(pedido, pago))
                 db.session.commit()
                 session.pop(f"otp_{pago.id}", None)
                 flash("Pago aprobado. Tu factura ya está disponible.", "ok")
@@ -487,15 +486,8 @@ def create_app():
     @login_required
     def cancelar(id):
         pedido = pedido_de(id)
-        if pedido.estado == "pendiente":
-            pedido.estado = "cancelado"
-            pedido.producto.stock += pedido.cantidad  # devuelve el stock
-            for pg in pedido.pagos:
-                if pg.estado == "pendiente_3ds":
-                    pg.estado, pg.codigo_respuesta, pg.mensaje, pg.otp_hash = "rechazado", "CA", "Pedido cancelado", None
-            db.session.commit()
-            flash("Pedido cancelado.", "ok")
-        return redirect(url_for("pedidos"))
+        if pedido.estado == "pendiente" and not any(pg.estado == "pendiente_mp" for pg in pedido.pagos):
+             return redirect(url_for("pedidos"))
 
     @app.route("/factura/<int:id>")
     @login_required
@@ -505,6 +497,82 @@ def create_app():
             abort(403)
         return render_template("factura.html", f=f, e=EMISOR)
 
+    @app.route("/pedido/<int:id>/pagar-mp", methods=["POST"])
+    @login_required
+    def pagar_mp(id):
+        pedido = pedido_de(id)
+        if pedido.estado != "pendiente":
+            flash("Este pedido ya no admite pagos.", "error")
+            return redirect(url_for("detalle_pedido", id=id))
+        if pedido.metodo_entrega is None:
+            return redirect(url_for("entrega", id=id))
+        if any(pg.estado == "pendiente_mp" for pg in pedido.pagos):
+            flash("Tenés un pago en revisión en Mercado Pago. Te avisamos cuando se acredite.", "ok")
+            return redirect(url_for("detalle_pedido", id=id))
+        clave = f"pagomp:{current_user.id}"
+        if limitado(clave, 10, 600):
+            flash("Demasiados intentos. Probá de nuevo en 10 minutos.", "error")
+            return redirect(url_for("detalle_pedido", id=id))
+        registrar_intento(clave)
+        base = os.environ.get("BASE_URL") or request.url_root.rstrip("/")
+        try:
+            return redirect(crear_preferencia(pedido, base))
+        except Exception as e:
+            print(f"[ultra.snd] Error con Mercado Pago: {e}", flush=True)
+            flash("No pudimos conectar con Mercado Pago. Probá de nuevo.", "error")
+            return redirect(url_for("pagar", id=id))
+
+    @app.route("/pedido/<int:id>/mp-retorno")
+    @login_required
+    def mp_retorno(id):
+        """A donde vuelve el cliente desde Mercado Pago. Confirma el pago contra la API (no confía en la URL)."""
+        pedido = pedido_de(id)
+        pid = request.args.get("payment_id") or request.args.get("collection_id")
+        if pid and pid.isdigit():
+            try:
+                sincronizar_pago(pid)
+            except Exception as e:
+                print(f"[ultra.snd] No se pudo sincronizar el pago {pid}: {e}", flush=True)
+        if pedido.estado == "pagado":
+            flash("Pago aprobado. Tu factura ya está disponible.", "ok")
+        elif any(pg.estado == "pendiente_mp" for pg in pedido.pagos):
+            flash("Tu pago está en revisión. Cuando se acredite, el pedido pasa a pagado.", "ok")
+        else:
+            flash("El pago no se completó. Podés intentarlo de nuevo.", "error")
+            return redirect(url_for("pagar", id=id))
+        return redirect(url_for("detalle_pedido", id=id))
+
+   
+    @app.route("/webhook/mercadopago", methods=["POST"])
+    @csrf.exempt
+    def webhook_mp():
+        if not firma_valida(request):
+            print("[MP] Firma inválida", flush=True)
+            return "Firma inválida", 401
+
+        datos = request.get_json(silent=True) or {}
+
+        tipo = request.args.get("type") or datos.get("type")
+        pid = request.args.get("data.id") or (datos.get("data") or {}).get("id")
+
+        print(f"[MP] Notificación recibida: tipo={tipo}, id={pid}", flush=True)
+
+        if tipo != "payment" or not pid:
+            print("[MP] Notificación sin tipo o ID de pago válido", flush=True)
+            return "", 200
+
+        try:
+            pago = sincronizar_pago(str(pid))
+
+            if pago is None:
+                print(f"[MP] No se pudo sincronizar el pago {pid}", flush=True)
+
+        except Exception as e:
+            print(f"[ultra.snd] Error en webhook MP: {e}", flush=True)
+            return "", 500
+
+        return "", 200
+    
     # ---------- Envío y cupones ----------
     @app.route("/api/envio")
     def api_envio():

@@ -131,6 +131,8 @@ class Pago(db.Model):
     otp_expira = db.Column(db.DateTime)
     intentos = db.Column(db.Integer, default=0)
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
+    proveedor = db.Column(db.String(12), default="simulador")  # simulador / mercadopago
+    mp_payment_id = db.Column(db.String(30), index=True)
 
 
 class Factura(db.Model):
