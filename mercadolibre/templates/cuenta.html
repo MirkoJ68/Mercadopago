@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% from "_macros.html" import campo, csrf %}
+{% block content %}
+<section class="panel-form ancho"><h1>Mi cuenta</h1>
+<p class="nota"><a href="{{ url_for('pedidos') }}">Mis pedidos</a> · <a href="{{ url_for('cupones') }}">Mis cupones</a></p>
+<h2 class="h-sec">Mis datos</h2>
+<form method="post" class="form">{{ csrf() }}{{ campo(datos.nombre) }}{{ campo(datos.email) }}{{ campo(datos.telefono) }}{{ campo(datos.password_actual) }}
+<button class="btn" name="d-guardar" value="1">Guardar datos ▷</button></form>
+<h2 class="h-sec">Cambiar contraseña</h2>
+<form method="post" class="form">{{ csrf() }}{{ campo(clave.actual) }}{{ campo(clave.password) }}
+<div class="medidor" aria-hidden="true"><span id="barra" data-nivel="-1"></span></div><small id="fuerza" aria-live="polite"></small>
+{{ campo(clave.confirmar) }}<button class="btn" name="c-guardar" value="1">Cambiar contraseña ▷</button></form>
+<p class="nota">¿Olvidaste tu contraseña actual? Cerrá sesión y usá «¿Olvidaste tu contraseña?» en el login.</p>
+</section>
+{% endblock %}

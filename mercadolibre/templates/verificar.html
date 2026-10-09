@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% from "_macros.html" import campo, tarjeta %}
+{% block content %}
+<section class="panel-form"><h1>Verificación 3D Secure</h1>
+<p class="sub">Tu banco envió un código de 6 dígitos para autorizar <b>{{ pago.monto|money2 }}</b> con {{ tarjeta(pago) }}{% if pago.cuotas > 1 %} en {{ pago.cuotas }} cuotas{% endif %}.</p>
+<div class="sms"><small>SMS simulado (solo para la demo)</small><b>{{ codigo or "------" }}</b></div>
+<form method="post" class="form">{{ form.hidden_tag() }}{{ campo(form.codigo) }}<button class="btn">Confirmar pago ▷</button></form>
+<p class="nota">El código vence a las {{ pago.otp_expira|fecha }}. Intentos restantes: {{ 3 - pago.intentos }}. Ref. {{ pago.referencia }}</p></section>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% from "_macros.html" import campo %}
+{% block content %}
+<section class="panel-form"><h1>{{ titulo }}</h1>
+<form method="post" class="form">{{ form.hidden_tag() }}
+{% for f in form if f.type not in ("CSRFTokenField", "SubmitField") %}
+{% if f.name == "captcha" %}<div class="captcha-caja">{% set cap = nuevo_captcha() %}<input type="hidden" name="captcha_id" id="captcha-id" value="{{ cap.id }}"><img class="captcha" id="captcha-img" src="{{ cap.img }}" alt="Código de verificación" width="180" height="60"><button type="button" class="enlace" data-captcha>Nuevo código</button></div>{% endif %}
+{{ campo(f) }}
+{% if f.name == "password" and medidor %}<div class="medidor" aria-hidden="true"><span id="barra" data-nivel="-1"></span></div><small id="fuerza" aria-live="polite"></small>{% endif %}
+{% endfor %}
+<button class="btn">{{ form.submit.label.text }} ▷</button></form>
+{% if titulo == "Iniciar sesión" %}<p class="nota">¿No tenés cuenta? <a href="{{ url_for('registro') }}">Crear cuenta</a> · <a href="{{ url_for('olvide') }}">¿Olvidaste tu contraseña?</a></p>{% endif %}
+</section>
+{% endblock %}

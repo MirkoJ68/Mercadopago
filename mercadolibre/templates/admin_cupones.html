@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% from "_macros.html" import csrf %}
+{% block content %}
+<section class="catalogo"><h2>Cupones</h2><p><a class="btn chico" href="{{ url_for('cupon_form') }}">Nuevo cupón</a></p>
+<div class="tabla-wrap"><table>
+<tr><th>Código</th><th>Descuento</th><th>Compra mínima</th><th>Vence</th><th>Usos</th><th>Estado</th><th></th></tr>
+{% for c in cupones %}<tr><td><b>{{ c.codigo }}</b>{% if c.publico %}<br><small>público</small>{% endif %}{% if c.origen == 'regalo' %}<br><small>regalo</small>{% endif %}</td><td>{{ c.valor_texto }}</td>
+<td>{{ c.minimo|money if c.minimo else "Sin mínimo" }}</td><td>{{ c.vence.strftime("%d/%m/%Y") if c.vence else "Sin vencimiento" }}</td>
+<td>{{ c.usos }}{% if c.usos_max %} / {{ c.usos_max }}{% endif %}</td><td><span class="estado {{ 'aprobado' if c.vigente() else 'rechazado' }}">{{ "activo" if c.vigente() else "inactivo" }}</span></td>
+<td class="acciones"><a class="btn chico" href="{{ url_for('cupon_form', id=c.id) }}">Editar</a>
+<form method="post" action="{{ url_for('eliminar_cupon', id=c.id) }}">{{ csrf() }}<button class="enlace">Eliminar</button></form></td></tr>
+{% else %}<tr><td colspan="7">Todavía no hay cupones.</td></tr>{% endfor %}
+</table></div></section>
+{% endblock %}

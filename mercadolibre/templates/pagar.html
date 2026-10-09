@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% from "_macros.html" import campo, csrf %}
+{% block content %}
+<section class="panel-form"><h1>Pagar pedido #{{ pedido.id }}</h1>
+<p class="sub">{{ pedido.cantidad }} × {{ pedido.producto.nombre }} · Total <b>{{ pedido.total|money2 }}</b> (productos{% if pedido.envio %} + envío{% endif %}{% if pedido.descuento %} − cupón{% endif %}, IVA incluido) · {{ pedido.domicilio_texto }}</p>
+<form method="post" class="form">{{ form.hidden_tag() }}
+<div class="fila">{{ campo(form.tipo) }}{{ campo(form.cuotas) }}</div>
+{{ campo(form.titular) }}{{ campo(form.numero) }}<p id="marca" class="marca-det">Marca no detectada</p>
+<div class="fila">{{ campo(form.vencimiento) }}{{ campo(form.cvv) }}</div>
+<button class="btn">Continuar a la verificación ▷</button></form>
+<ul class="seguridad">
+<li>No guardamos el número de tarjeta, el vencimiento ni el CVV: solo la marca y los últimos 4 dígitos.</li>
+<li>Verificación 3D Secure con un código de un solo uso que vence en 5 minutos.</li>
+<li>Formularios con token CSRF, límite de intentos y sesión que vence a los 30 minutos.</li>
+</ul>
+<details class="nota"><summary>Tarjetas de prueba (simulador)</summary>
+<p>Aprobadas: Visa 4111 1111 1111 1111 · Mastercard 5555 5555 5555 4444 · Amex 3782 822463 10005. Cualquier vencimiento futuro y CVV (4 dígitos en Amex).<br>
+Rechazadas (Visa): 4000 0000 0000 0002 (rechazo del emisor) · 4000 0000 0000 9995 (fondos insuficientes) · 4000 0000 0000 0069 (vencida) · 4000 0000 0000 0127 (CVV incorrecto).</p></details>
+<form method="post" action="{{ url_for('cancelar', id=pedido.id) }}">{{ csrf() }}<button class="enlace">Cancelar pedido</button></form></section>
+{% endblock %}

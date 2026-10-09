@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% from "_macros.html" import campo %}
+{% block content %}
+<section class="panel-form"><h1>{{ "Editar producto" if editando else "Nuevo producto" }}</h1>
+<form method="post" enctype="multipart/form-data" class="form">{{ form.hidden_tag() }}
+{% for f in form if f.type not in ("CSRFTokenField", "SubmitField") %}{{ campo(f) }}
+{% if f.name == "imagen" and p and p.imagen %}<p class="nota">Imagen actual (se reemplaza si subís otra):<br><img class="mini" src="{{ url_for('static', filename='img/productos/' ~ p.imagen) }}" alt="{{ p.nombre }}"></p>{% endif %}{% endfor %}
+<button class="btn">Guardar producto ▷</button></form></section>
+{% endblock %}

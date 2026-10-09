@@ -1,0 +1,31 @@
+{% extends "base.html" %}{% from "_macros.html" import campo %}
+{% block content %}
+<section class="panel-form ancho"><h1>Entrega del pedido #{{ pedido.id }}</h1>
+<p class="sub">{{ pedido.cantidad }} × {{ pedido.producto.nombre }}</p>
+<form method="post" class="form">{{ form.hidden_tag() }}
+{{ campo(form.metodo_entrega) }}
+<p class="nota" id="aviso-retiro">Retiro sin costo en: {{ ALMACEN }}.</p>
+<div id="bloque-domicilio" class="form">
+<p class="nota">Esta dirección se usa para el envío y también como domicilio de facturación.</p>
+{{ campo(form.dom_calle) }}
+<div class="fila">{{ campo(form.dom_numero) }}{{ campo(form.dom_piso) }}</div>
+{{ campo(form.dom_ciudad) }}
+<div class="fila">{{ campo(form.dom_provincia) }}{{ campo(form.dom_cp) }}</div>
+<p id="envio-res" class="marca-det" data-cantidad="{{ pedido.cantidad }}"></p>
+{{ campo(form.telefono) }}
+</div>
+{{ campo(form.cupon_codigo) }}
+<datalist id="lista-cupones">{% for c in disponibles if c.minimo <= pedido.subtotal %}<option value="{{ c.codigo }}">{{ c.descripcion }}</option>{% endfor %}</datalist>
+{% if disponibles %}<div class="mis-cupones"><small>Tus cupones disponibles (tocá uno para usarlo):</small>
+{% for c in disponibles %}<button type="button" class="chip-cupon" data-cupon="{{ c.codigo }}"{% if c.minimo > pedido.subtotal %} disabled{% endif %}><b>{{ c.codigo }}</b> · {{ c.descripcion }}{% if c.vence %} · vence {{ c.vence.strftime("%d/%m/%Y") }}{% endif %}{% if c.minimo > pedido.subtotal %} · no alcanza el mínimo{% endif %}</button>{% endfor %}</div>
+{% else %}<p class="nota">No tenés cupones disponibles por ahora.</p>{% endif %}
+{% if canjeados %}<details class="nota"><summary>Cupones que ya canjeaste ({{ canjeados|length }})</summary><ul>{% for p in canjeados %}<li>{{ p.cupon_codigo }} · pedido #{{ p.id }} · ahorraste {{ p.descuento|money2 }}</li>{% endfor %}</ul></details>{% endif %}
+<table class="resumen">
+<tr><td>Productos</td><td>{{ pedido.subtotal|money2 }}</td></tr>
+{% if pedido.descuento %}<tr><td>Cupón {{ pedido.cupon_codigo }}</td><td>-{{ pedido.descuento|money2 }}</td></tr>{% endif %}
+{% if pedido.envio %}<tr><td>Envío a domicilio</td><td>{{ pedido.envio|money2 }}</td></tr>{% endif %}
+<tr class="total"><td>Total a pagar</td><td>{{ pedido.total|money2 }}</td></tr></table>
+<p class="nota">El costo de envío depende de la distancia desde nuestro almacén (Córdoba) y se paga junto con el producto. El valor del cupón se descuenta de los productos, no del envío.</p>
+<div class="acciones"><button class="btn" name="actualizar" value="1">Aplicar y actualizar totales</button><button class="btn" name="continuar" value="1">Continuar al pago ▷</button></div>
+</form></section>
+{% endblock %}

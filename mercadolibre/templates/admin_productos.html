@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% from "_macros.html" import csrf %}
+{% block content %}
+<section class="catalogo"><h2>Productos</h2><p><a class="btn chico" href="{{ url_for('producto_form') }}">Agregar producto</a></p>
+<div class="tabla-wrap"><table>
+<tr><th>Imagen</th><th>Nombre</th><th>Categoría</th><th>Precio ($)</th><th>Stock</th><th></th></tr>
+{% for p in productos %}<tr><td>{% if p.imagen %}<img class="mini" src="{{ url_for('static', filename='img/productos/' ~ p.imagen) }}" alt="">{% else %}—{% endif %}</td><td>{{ p.nombre }}</td><td>{{ p.categoria }}</td><td><input class="in corto" type="number" name="precio" min="1" step="0.01" value="{{ p.precio }}" form="r{{ p.id }}" aria-label="Precio de {{ p.nombre }}"></td><td><input class="in corto" type="number" name="stock" min="0" step="1" value="{{ p.stock }}" form="r{{ p.id }}" aria-label="Stock de {{ p.nombre }}"></td>
+<td class="acciones"><form id="r{{ p.id }}" method="post" action="{{ url_for('producto_rapido', id=p.id) }}">{{ csrf() }}<button class="btn chico">Guardar</button></form><a class="btn chico" href="{{ url_for('producto_form', id=p.id) }}">Editar</a>
+<form method="post" action="{{ url_for('eliminar_producto', id=p.id) }}">{{ csrf() }}<button class="enlace">Eliminar</button></form></td></tr>{% endfor %}
+</table></div></section>
+{% endblock %}

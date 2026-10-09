@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="no-print acciones-fac"><button class="btn" data-imprimir>Imprimir / guardar PDF</button> <a class="btn" href="{{ url_for('detalle_pedido', id=f.pedido_id) }}">Volver al pedido</a></p>
+<article class="factura">
+<header><div><h2>{{ e.razon }}</h2><p>{{ e.domicilio }}<br>CUIT {{ e.cuit }} · {{ e.iva }}<br>Inicio de actividades: {{ e.inicio }}</p></div>
+<div class="letra">B</div><div><h2>FACTURA</h2><p>N° {{ f.numero }}<br>Fecha: {{ f.fecha|fecha }}</p></div></header>
+<p><b>Cliente:</b> {{ f.cliente_nombre }} ({{ f.cliente_email }}) · Consumidor final</p>
+<p><b>Domicilio de facturación / entrega:</b> {{ f.domicilio or "Sin envío (retiro en almacén)" }}</p>
+<table><tr><th>Descripción</th><th>Importe</th></tr>
+<tr><td>{{ f.detalle }}</td><td>{{ f.subtotal|money2 }}</td></tr>
+{% if f.descuento %}<tr><td>Descuento cupón {{ f.cupon_codigo }}</td><td>-{{ f.descuento|money2 }}</td></tr>{% endif %}
+{% if f.envio %}<tr><td>Envío a domicilio</td><td>{{ f.envio|money2 }}</td></tr>{% endif %}
+{% if f.recargo %}<tr><td>Recargo financiero ({{ f.pedido.pago_aprobado.cuotas }} cuotas)</td><td>{{ f.recargo|money2 }}</td></tr>{% endif %}
+<tr><td>Neto gravado</td><td>{{ f.neto|money2 }}</td></tr><tr><td>IVA 21%</td><td>{{ f.iva|money2 }}</td></tr>
+<tr class="total"><td>TOTAL</td><td>{{ f.total|money2 }}</td></tr></table>
+<p>Pagado con {{ f.pedido.pago_aprobado.marca }} ···· {{ f.pedido.pago_aprobado.ultimos4 }} · Autorización {{ f.pedido.pago_aprobado.codigo_autorizacion }} · Ref. {{ f.pedido.pago_aprobado.referencia }}</p>
+<p>CAE: {{ f.cae }} · Vencimiento CAE: {{ f.cae_vto.strftime("%d/%m/%Y") }}</p>
+<p class="nota">Documento simulado con fines educativos: sin validez fiscal.</p></article>
+{% endblock %}

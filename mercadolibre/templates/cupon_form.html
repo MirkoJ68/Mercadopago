@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% from "_macros.html" import campo %}
+{% block content %}
+<section class="panel-form"><h1>{{ "Editar cupón" if editando else "Nuevo cupón" }}</h1>
+<form method="post" class="form">{{ form.hidden_tag() }}
+{% for f in form if f.type not in ("CSRFTokenField", "SubmitField") %}{{ campo(f) }}{% endfor %}
+<button class="btn">Guardar cupón ▷</button></form></section>
+{% endblock %}

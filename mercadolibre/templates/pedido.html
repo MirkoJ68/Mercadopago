@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% from "_macros.html" import tarjeta %}
+{% block content %}
+<section class="catalogo"><h2>Pedido #{{ p.id }} <span class="estado {{ p.estado }}">{{ p.estado }}</span></h2>
+<dl class="datos">
+<div><dt>Producto</dt><dd>{{ p.producto.nombre }}</dd></div><div><dt>Cantidad</dt><dd>{{ p.cantidad }}</dd></div>
+<div><dt>Productos</dt><dd>{{ (p.subtotal if p.subtotal is not none else p.total)|money2 }}</dd></div>
+{% if p.descuento %}<div><dt>Cupón {{ p.cupon_codigo }}</dt><dd>-{{ p.descuento|money2 }}</dd></div>{% endif %}
+{% if p.envio %}<div><dt>Envío</dt><dd>{{ p.envio|money2 }}</dd></div>{% endif %}
+<div><dt>Total</dt><dd><b>{{ p.total|money2 }}</b></dd></div>
+<div><dt>Entrega / facturación</dt><dd>{{ p.domicilio_texto }}{% if p.telefono %} · Tel. {{ p.telefono }}{% endif %}</dd></div><div><dt>Fecha</dt><dd>{{ p.fecha|fecha }}</dd></div>
+<div><dt>Cliente</dt><dd>{{ p.usuario.nombre }}</dd></div>{% if p.fecha_cobro %}<div><dt>Liquidado</dt><dd>{{ p.fecha_cobro|fecha }}</dd></div>{% endif %}
+</dl>
+<p>{% if p.estado == "pendiente" %}<a class="btn" href="{{ url_for('entrega', id=p.id) }}">Entrega y cupón</a> <a class="btn" href="{{ url_for('pagar', id=p.id) }}">Pagar ▷</a>{% endif %}
+{% if p.factura %}<a class="btn" href="{{ url_for('factura', id=p.factura.id) }}">Ver factura {{ p.factura.numero }}</a>{% endif %}</p>
+{% if regalo %}<p class="aviso ok">Por esta compra te regalamos el cupón <b>{{ regalo.codigo }}</b> ({{ regalo.descripcion }}, vence el {{ regalo.vence.strftime("%d/%m/%Y") }}). Lo encontrás en «Mis cupones».</p>{% endif %}
+<h3>Intentos de pago</h3>
+<div class="tabla-wrap"><table><tr><th>Referencia</th><th>Fecha</th><th>Tarjeta</th><th>Cuotas</th><th>Monto</th><th>Resultado</th><th>Autorización</th></tr>
+{% for g in p.pagos %}<tr><td>{{ g.referencia }}</td><td>{{ g.fecha|fecha }}</td><td>{{ tarjeta(g) }}</td><td>{{ g.cuotas }}</td><td>{{ g.monto|money2 }}</td>
+<td><span class="estado {{ g.estado }}">{{ g.estado|replace("_", " ") }}</span>{% if g.mensaje %}<br><small>{{ g.mensaje }} ({{ g.codigo_respuesta }})</small>{% endif %}</td><td>{{ g.codigo_autorizacion or "-" }}</td></tr>
+{% else %}<tr><td colspan="7">Todavía no hay intentos de pago.</td></tr>{% endfor %}</table></div></section>
+{% endblock %}

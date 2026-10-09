@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="catalogo"><h2>Mis pedidos</h2>
+<div class="tabla-wrap"><table>
+<tr><th>#</th><th>Producto</th><th>Cant.</th><th>Total</th><th>Estado</th><th></th></tr>
+{% for p in pedidos %}<tr><td>{{ p.id }}</td><td>{{ p.producto.nombre }}</td><td>{{ p.cantidad }}</td><td>{{ p.total|money2 }}</td>
+<td><span class="estado {{ p.estado }}">{{ p.estado }}</span></td>
+<td class="acciones"><a class="btn chico" href="{{ url_for('detalle_pedido', id=p.id) }}">Detalle</a>
+{% if p.estado == "pendiente" %}<a class="btn chico" href="{{ url_for('pagar', id=p.id) }}">Pagar</a>{% endif %}
+{% if p.factura %}<a class="btn chico" href="{{ url_for('factura', id=p.factura.id) }}">Factura</a>{% endif %}</td></tr>
+{% else %}<tr><td colspan="6">Todavía no hiciste pedidos. <a href="{{ url_for('index') }}#catalogo">Ver catálogo</a></td></tr>{% endfor %}
+</table></div></section>
+{% endblock %}

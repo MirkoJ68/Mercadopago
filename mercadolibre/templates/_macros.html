@@ -1,0 +1,37 @@
+{% macro hp(categoria="", cls="hp") %}
+{%- set defs -%}<defs>
+<linearGradient id="gB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f1f4fb"/><stop offset=".5" stop-color="#8a92a6"/><stop offset="1" stop-color="#d3d8e4"/></linearGradient>
+<linearGradient id="gC" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a6078"/><stop offset=".5" stop-color="#1b1d28"/><stop offset="1" stop-color="#090a0e"/></linearGradient>
+<linearGradient id="gP" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#14151b"/><stop offset=".5" stop-color="#3d4051"/><stop offset="1" stop-color="#0e0f14"/></linearGradient>
+<linearGradient id="gW" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#c3c9d8"/><stop offset="1" stop-color="#8a92a6"/></linearGradient>
+</defs>{%- endset -%}
+{% if "In-ear" in categoria %}
+<svg class="{{ cls }}" viewBox="0 0 240 240" aria-hidden="true">{{ defs }}
+<g transform="rotate(-12 88 80)"><rect x="80" y="84" width="15" height="46" rx="7.5" fill="url(#gW)"/><ellipse cx="88" cy="68" rx="24" ry="27" fill="url(#gW)"/><circle cx="88" cy="64" r="7" fill="#1b1d28"/><path d="M70 56Q76 44 90 42" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity=".8"/></g>
+<g transform="rotate(12 152 80)"><rect x="145" y="84" width="15" height="46" rx="7.5" fill="url(#gW)"/><ellipse cx="152" cy="68" rx="24" ry="27" fill="url(#gW)"/><circle cx="152" cy="64" r="7" fill="#1b1d28"/><path d="M134 56Q140 44 154 42" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity=".8"/></g>
+<rect x="56" y="128" width="128" height="88" rx="38" fill="url(#gC)"/><path d="M56 160H184" stroke="#000" stroke-width="3"/><path d="M56 163H184" stroke="#fff" stroke-opacity=".14" stroke-width="2"/>
+<circle cx="120" cy="190" r="4.5" fill="#7fd0ff"/><circle cx="120" cy="190" r="10" fill="#7fd0ff" opacity=".25"/><path d="M70 140Q76 132 96 131" stroke="#fff" stroke-opacity=".3" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+{% elif "Estudio" in categoria %}
+<svg class="{{ cls }}" viewBox="0 0 240 240" aria-hidden="true">{{ defs }}
+<path d="M48 140V118C48 30 192 30 192 118V140" fill="none" stroke="url(#gP)" stroke-width="22" stroke-linecap="round"/><path d="M48 140V118C48 30 192 30 192 118V140" fill="none" stroke="url(#gB)" stroke-width="6" stroke-linecap="round"/>
+<circle cx="48" cy="170" r="40" fill="url(#gC)"/><circle cx="48" cy="170" r="27" fill="#0c0d12" stroke="url(#gB)" stroke-width="3"/><circle cx="48" cy="170" r="12" fill="url(#gP)"/>
+<circle cx="192" cy="170" r="40" fill="url(#gC)"/><circle cx="192" cy="170" r="27" fill="#0c0d12" stroke="url(#gB)" stroke-width="3"/><circle cx="192" cy="170" r="12" fill="url(#gP)"/>
+<path d="M198 208C208 236 150 236 132 238" stroke="#2b2d38" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M20 160Q24 138 44 132" stroke="#fff" stroke-opacity=".3" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+{% else %}
+{% set gaming = "Gaming" in categoria %}{% set neon = "#f0502d" if gaming else "#7fd0ff" %}
+<svg class="{{ cls }}" viewBox="0 0 240 240" aria-hidden="true">{{ defs }}
+<path d="M54 150V112C54 38 186 38 186 112V150" fill="none" stroke="url(#gP)" stroke-width="22" stroke-linecap="round"/><path d="M54 150V112C54 38 186 38 186 112V150" fill="none" stroke="url(#gB)" stroke-width="6" stroke-linecap="round" transform="translate(0 -2)"/>
+<rect x="30" y="126" width="54" height="90" rx="{{ 18 if gaming else 27 }}" fill="url(#gC)"/><rect x="156" y="126" width="54" height="90" rx="{{ 18 if gaming else 27 }}" fill="url(#gC)"/>
+<ellipse cx="57" cy="171" rx="14" ry="28" fill="none" stroke="{{ neon }}" stroke-width="3"/><ellipse cx="183" cy="171" rx="14" ry="28" fill="none" stroke="{{ "#9a4fcf" if gaming else neon }}" stroke-width="3"/>
+<ellipse cx="57" cy="171" rx="22" ry="38" fill="{{ neon }}" opacity=".12"/><path d="M38 150Q42 134 60 132" stroke="#fff" stroke-opacity=".35" stroke-width="3" fill="none" stroke-linecap="round"/>
+{% if gaming %}<path d="M36 200C14 206 12 232 48 232" stroke="#1b1d28" stroke-width="6" fill="none" stroke-linecap="round"/><circle cx="52" cy="232" r="7" fill="url(#gC)" stroke="#f0502d" stroke-width="2"/>{% endif %}</svg>
+{% endif %}
+{% endmacro %}
+{% macro foto(p, cls="hp") %}{% if p.imagen %}<img class="foto" src="{{ url_for('static', filename='img/productos/' ~ p.imagen) }}" alt="{{ p.nombre }}" loading="lazy" decoding="async">{% else %}{{ hp(p.categoria, cls) }}{% endif %}{% endmacro %}
+{% macro cupon_card(c) %}<div class="tarjeta cupon"><p class="cupon-valor">{{ c.valor_texto }} <small>de descuento</small></p><h3>{{ c.codigo }}</h3>
+<p>{{ "Se usa en compras de productos desde " ~ (c.minimo|money) if c.minimo else "Sin compra mínima" }}</p>
+<p class="stock">{{ "Vence el " ~ c.vence.strftime("%d/%m/%Y") if c.vence else "Sin vencimiento" }}</p>
+<form method="post" action="{{ url_for('activar_cupon') }}">{{ csrf() }}<input type="hidden" name="codigo" value="{{ c.codigo }}"><button class="btn chico">Usar cupón</button></form></div>{% endmacro %}
+{% macro campo(f) %}<label class="campo">{{ f.label.text }}{{ f(class="in") }}{% for e in f.errors %}<small class="err">{{ e }}</small>{% endfor %}</label>{% endmacro %}
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
+{% macro tarjeta(p) %}{% if p.marca %}<span class="chip">{{ p.marca }}</span> ···· {{ p.ultimos4 }} · {{ "Crédito" if p.tipo_tarjeta == "credito" else "Débito" }}{% else %}-{% endif %}{% endmacro %}
