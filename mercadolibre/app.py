@@ -212,15 +212,19 @@ def pedido_de(id, permitir_admin=False):
 def create_app():
     app = Flask(__name__)
     csrf = CSRFProtect(app)
-    os.makedirs(app.instance_path, exist_ok=True)
+    # La base queda SIEMPRE en instance/ junto a app.py, sin importar desde dónde se ejecute (o en DATABASE_PATH si se define en .env)
+    carpeta_bd = os.path.join(os.path.dirname(os.path.abspath(__file__)), "instance")
+    os.makedirs(carpeta_bd, exist_ok=True)
+    ruta_bd = os.path.abspath(os.environ.get("DATABASE_PATH") or os.path.join(carpeta_bd, "ultra_snd_v2.db"))
     os.makedirs(os.path.join(app.static_folder, "img", "productos"), exist_ok=True)
     https = os.environ.get("HTTPS") == "1"
     app.config.update(
-        SECRET_KEY=clave_secreta(app.instance_path),
-        SQLALCHEMY_DATABASE_URI="sqlite:///ultra_snd_v2.db",
+        SECRET_KEY=clave_secreta(carpeta_bd),
+        SQLALCHEMY_DATABASE_URI="sqlite:///" + ruta_bd.replace("\\", "/"),
         SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_SECURE=https,
         PERMANENT_SESSION_LIFETIME=timedelta(minutes=30), WTF_CSRF_TIME_LIMIT=3600,
         MAX_CONTENT_LENGTH=16 * 1024 * 1024)  # tope de subida: 16 MB
+    print(f"[ultra.snd] Base de datos: {ruta_bd}" + ("  <- BASE NUEVA: no existía y se creó vacía" if not os.path.exists(ruta_bd) else ""), flush=True)
     db.init_app(app)
     login_manager.init_app(app)
 

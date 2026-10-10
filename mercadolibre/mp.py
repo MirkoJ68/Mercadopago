@@ -37,7 +37,7 @@ def crear_preferencia(pedido, base_url):
     datos = {
         "items": [{
             "id": str(pedido.id),
-            "title": f"Pedido #{pedido.codigo} - {pedido.cantidad} x {pedido.producto.nombre}"[:250],
+            "title": f"Pedido {pedido.codigo} - {pedido.cantidad} x {pedido.producto.nombre}"[:250],
             "quantity": 1,
             "unit_price": round(float(pedido.total), 2),
             "currency_id": "ARS",
@@ -115,6 +115,6 @@ def sincronizar_pago(payment_id):
             aprobar_pedido(pedido, pago)
         if aviso:
             pago.mensaje = aviso
-            print(f"[ultra.snd] Pago MP {mp['id']} / pedido #{pedido.id}: {aviso}", flush=True)
+            print(f"[ultra.snd] Pago MP {mp['id']} / pedido {pedido.codigo}: {aviso}", flush=True)
     db.session.commit()
     return pago
